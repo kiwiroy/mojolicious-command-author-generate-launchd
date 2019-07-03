@@ -1,0 +1,62 @@
+#!/usr/bin/env perl
+use Mojo::Base -strict;
+
+use Mojo::Server::Hypnotoad;
+use Mojo::Util qw(extract_usage getopt);
+
+getopt
+  'h|help'       => \my $help,
+  's|stop'       => \$ENV{HYPNOTOAD_STOP},
+  't|test'       => \$ENV{HYPNOTOAD_TEST},
+  'a|auto'       => \$ENV{HYPNOTOADLAUNCHD_AUTORESTART};
+
+die extract_usage if $help || !(my $app = shift || $ENV{HYPNOTOAD_APP});
+say STDERR "auto restarting is not currently supported"
+    if $ENV{HYPNOTOADLAUNCHD_AUTORESTART};
+Mojo::Server::Hypnotoad->with_roles('+Launchd')->new->run($app);
+
+=encoding utf8
+
+=begin html
+
+<a href="https://travis-ci.com/kiwiroy/mojolicious-command-author-generate-launchd">
+  <img src="https://travis-ci.com/kiwiroy/mojolicious-command-author-generate-launchd.svg?token=Kpqpmk91fYg5k9hdqK3y&branch=master">
+</a>
+
+=end html
+
+=head1 NAME
+
+hypnotoad-launchd - Hypnotoad HTTP and WebSocket server managed by launchd
+
+=head1 SYNOPSIS
+
+  Usage: hypnotoad-launchd [OPTIONS] [APPLICATION]
+
+    hypnotoad-launchd ./script/my_app
+    hypnotoad-launchd ./myapp.pl
+    hypnotoad-launchd -s ./myapp.pl
+    hypnotoad-launchd -t ./myapp.pl
+
+  Options:
+    -h, --help         Show this message
+    -a, --auto         Enable the autorestarting feature (not supported)
+    -s, --stop         Stop server gracefully
+    -t, --test         Test application and exit
+
+=head1 DESCRIPTION
+
+Start L<Mojolicious> and L<Mojolicious::Lite> applications with the
+L<Hypnotoad|Mojo::Server::Hypnotoad> web server in a method that is managed by
+C<launchd>/C<launchctl>.
+
+Essentially, this is a controller script for C<hypnotoad> that runs in the
+foreground utilising the code from L<Mojo::Server::Hypnotoad> and
+L<Mojo::Server::Prefork>. Identical signals are handled and proxied to the
+daemonized instance of C<hypnotoad> as required.
+
+=head1 SEE ALSO
+
+L<Mojolicious>, L<Mojolicious::Guides>, L<https://mojolicious.org>.
+
+=cut
