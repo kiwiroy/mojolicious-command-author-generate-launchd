@@ -40,7 +40,7 @@ daemonized instance of C<hypnotoad> as required.
 
 =head1 SEE ALSO
 
-L<Mojolicious>, L<Mojolicious::Guides>, L<https://mojolicious.org>.
+L<Mojolicious>, L<Mojolicious::Guides>, L<https://mojolicious.org>, L<daemondo|https://github.com/macports/macports-base/blob/master/src/programs/daemondo/main.c> from macports.
 
 
 =cut
