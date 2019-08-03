@@ -166,7 +166,7 @@ ok kill 'TERM', $hpid;
 sleep 1 while _port($port2);
 
 sleep 1 while -f $dir->child('hypnotoad.pid');
-sleep 1;
+sleep 5;
 
 like $launch->slurp, qr/This is the end/, 'finished';
 
