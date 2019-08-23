@@ -1,4 +1,34 @@
+# Avoid version control files.
+\B\.git\b
+\B\.gitignore\b
+
+# Avoid Makemaker generated and utility files.
+\bMANIFEST\.bak
+\bMakefile$
+\bblib/
+\bMakeMaker-\d
+\bpm_to_blib\.ts$
+\bpm_to_blib$
+\bblibdirs\.ts$         # 6.18 through 6.25 generated this
+
+# Avoid temp and backup files.
+~$
+\.old$
+\#$
+\b\.#
+\.bak$
+\.tmp$
+\.#
+\.rej$
 \.swp$
 ^local/
+
+# Avoid Devel::Cover and Devel::CoverX::Covered files.
+\bcover_db\b
+\bcovered\b
+
 ^MANIFEST\.SKIP
 ^README\.pod
+^MYMETA\.
+^\.proverc$
+^\.travis\.yml$

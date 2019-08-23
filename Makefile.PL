@@ -25,6 +25,7 @@ WriteMakefile(
         'File::Which' => '0',
         'Mojolicious' => '8.12',
         'Role::Tiny'  => '0',
+        'Class::Method::Modifiers' => '0',
         'perl'        => 'v5.20.0',
     },
     BUILD_REQUIRES => {

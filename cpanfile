@@ -2,6 +2,7 @@ requires 'File::Glob';
 requires 'File::Which';
 requires 'Mojolicious' => '8.12';
 requires 'Role::Tiny';
+requires 'Class::Method::Modifiers';
 requires 'perl' => '5.20.0';
 
 test_requires 'Test::More';
