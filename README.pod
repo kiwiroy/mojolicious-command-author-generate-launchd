@@ -3,7 +3,16 @@
 =begin html
 
 <a href="https://travis-ci.com/kiwiroy/mojolicious-command-author-generate-launchd">
-  <img src="https://travis-ci.com/kiwiroy/mojolicious-command-author-generate-launchd.svg?token=Kpqpmk91fYg5k9hdqK3y&branch=master">
+  <img alt="Build Status"
+       src="https://travis-ci.com/kiwiroy/mojolicious-command-author-generate-launchd.svg?token=Kpqpmk91fYg5k9hdqK3y&branch=master">
+</a>
+<a href="https://coveralls.io/github/kiwiroy/mojolicious-command-author-generate-launchd?branch=master">
+  <img alt="Coverage Status"
+       src="https://coveralls.io/repos/github/kiwiroy/mojolicious-command-author-generate-launchd/badge.svg?branch=master" />
+</a>
+<a href="https://kritika.io/users/kiwiroy/repos/9828314644594857/heads/master/">
+  <img alt="Kritika Analysis Status"
+       src="https://kritika.io/users/kiwiroy/repos/9828314644594857/heads/master/status.svg?type=score%2Bcoverage%2Bdeps" />
 </a>
 
 =end html

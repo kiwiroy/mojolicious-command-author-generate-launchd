@@ -73,4 +73,8 @@ Mojo::Server::Hypnotoad::Role::Launchd - Specialised for launchd
 
 =head1 DESCRIPTION
 
+=head1 METHODS
+
+=head2 daemonize
+
 =cut

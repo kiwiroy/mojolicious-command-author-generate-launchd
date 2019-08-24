@@ -151,6 +151,25 @@ Mojo::Server::Prefork::Role::Launchd - Specialised for launchd
 
 =head1 SYNOPSIS
 
+  my $prefork = Mojo::Server::Prefork->with_roles('+Launchd')->new();
+  $prefork->run;
+
 =head1 DESCRIPTION
+
+A Role to specialise L<Mojo::Server::Prefork> to manage L<hypnotoad> script.
+
+=head1 ATTRIBUTES
+
+=head2 auto_restart
+
+=head2 backend
+
+A specialised L<Mojo::Server::Morbo::Backend>.
+
+=head1 METHODS
+
+=head2 run
+
+Overridden by this role to run L<hypnotoad>.
 
 =cut
