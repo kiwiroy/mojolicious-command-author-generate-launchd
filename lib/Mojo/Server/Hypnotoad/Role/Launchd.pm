@@ -14,8 +14,7 @@ after configure => sub ($self, @args) {
 };
 
 # specialise the Prefork
-has prefork => sub {
-    my $self = shift;
+has prefork => sub ($self) {
     Mojo::Server::Prefork->with_roles('+Launchd')->new()
         ->tap(sub {
             $_->on(spawn => sub ($e, $pid) { $self->_spawn($pid) });
@@ -49,11 +48,11 @@ sub _hot_deploy ($self) {
 sub _manage ($self) {
     my $prefork = $self->prefork;
     my $log     = $prefork->app->log;
-    if ($self->{upgrade} && !$self->{finished}) {
-        my $pid = $prefork->check_pid;
+    if ((my $pid = $prefork->check_pid) &&
+        !$self->{finished} &&
+        delete $self->{upgrade}) {
         $log->info("Starting zero downtime software upgrade for $pid");
         $prefork->check_pid if ($pid && kill USR2 => $pid);
-        delete $self->{upgrade};
     }
 }
 

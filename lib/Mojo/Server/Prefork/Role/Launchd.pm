@@ -66,6 +66,7 @@ sub _add_watch ($self, @watch) {
 }
 
 sub _catch_modified ($self, $file) {
+    return unless $file eq $self->app->config->{hypnotoad}{pid_file};
     my ($pid) = split /\n/, path($file)->slurp;
     $self->{hypnotoad} = $pid;
     $self->{pool}{$pid}{time}    = steady_time;
@@ -74,6 +75,7 @@ sub _catch_modified ($self, $file) {
 }
 
 sub _catch_unlink ($self, $file) {
+    return unless $file eq $self->app->config->{hypnotoad}{pid_file};
     my $pid = $self->{hypnotoad};
     $self->app->log->info("hypnotoad (" . ($pid || ''). ") died");
     $self->{finished} = !($self->{running} = 0) unless $self->auto_restart;
