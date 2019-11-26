@@ -17,6 +17,9 @@ if (my $cmd = new_ok 'Mojolicious::Commands') {
 
 if (my $gen = new_ok 'Mojolicious::Command::Author::generate') {
     local $ENV{HARNESS_ACTIVE} = 0;
+    local $ENV{MOJO_HOME} = undef;
+    local $ENV{PATH} =
+      join ':', Mojo::Home->new->detect->child('script'), $ENV{PATH};
     my ($stdout) = capture_stdout {
         $gen->run();
     };
@@ -25,6 +28,7 @@ if (my $gen = new_ok 'Mojolicious::Command::Author::generate') {
 
 if (my $gen = new_ok 'Mojolicious::Command::Author::generate') {
     local $ENV{HARNESS_ACTIVE} = 0;
+    local $ENV{MOJO_HOME} = undef;
     local $ENV{PATH} =
       join ':', Mojo::Home->new->detect->child('script'), $ENV{PATH};
     my $output_dir = tempdir;
@@ -37,6 +41,7 @@ if (my $gen = new_ok 'Mojolicious::Command::Author::generate') {
 
 if (my $gen = new_ok 'Mojolicious::Command::Author::generate') {
     local $ENV{HARNESS_ACTIVE} = 0;
+    local $ENV{MOJO_HOME} = undef;
     local $ENV{PATH} =
       join ':', Mojo::Home->new->detect->child('script'), $ENV{PATH};
     my $output_dir = tempdir;
