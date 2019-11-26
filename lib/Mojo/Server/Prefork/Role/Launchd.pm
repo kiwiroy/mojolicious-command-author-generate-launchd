@@ -66,6 +66,7 @@ sub _add_watch ($self, @watch) {
 }
 
 sub _catch_modified ($self, $file) {
+    return unless $file eq $self->app->config->{hypnotoad}{pid_file};
     my ($pid) = split /\n/, path($file)->slurp;
     $self->{hypnotoad} = $pid;
     $self->{pool}{$pid}{time}    = steady_time;
@@ -74,6 +75,7 @@ sub _catch_modified ($self, $file) {
 }
 
 sub _catch_unlink ($self, $file) {
+    return unless $file eq $self->app->config->{hypnotoad}{pid_file};
     my $pid = $self->{hypnotoad};
     $self->app->log->info("hypnotoad (" . ($pid || ''). ") died");
     $self->{finished} = !($self->{running} = 0) unless $self->auto_restart;
@@ -151,6 +153,25 @@ Mojo::Server::Prefork::Role::Launchd - Specialised for launchd
 
 =head1 SYNOPSIS
 
+  my $prefork = Mojo::Server::Prefork->with_roles('+Launchd')->new();
+  $prefork->run;
+
 =head1 DESCRIPTION
+
+A Role to specialise L<Mojo::Server::Prefork> to manage L<hypnotoad> script.
+
+=head1 ATTRIBUTES
+
+=head2 auto_restart
+
+=head2 backend
+
+A specialised L<Mojo::Server::Morbo::Backend>.
+
+=head1 METHODS
+
+=head2 run
+
+Overridden by this role to run L<hypnotoad>.
 
 =cut

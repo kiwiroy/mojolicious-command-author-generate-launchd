@@ -13,6 +13,7 @@ our $VERSION = 0.1;
 
 has agent_dir => \&_default_launch_agent_dir;
 has description => 'Create a launchd.plist file for application';
+has environment => sub { [] };
 has extension => 'plist';
 has force => 0;
 has start_interval => 0;
@@ -21,20 +22,7 @@ has plist_file => sub ($self) {
     return Mojo::File->new($self->agent_dir)
         ->child(join '.', $self->app->moniker, $self->extension);
 };
-has usage => <<EOF;
-Usage: $0 generate launchd [--inc] [-force] [--mode <mode>] [--label <label>] [--output <dir>] [--interval <seconds>] ...
-
-Options:
-  --inc           Include the current PERL5LIB in Environment     [off]
-  --force         Flag to force overwriting of existing plist file
-  --mode <mode>   Set the MOJO_MODE. Hypnotoad default to production
-  --label <label> Set the label and thus filename of the agent    [app->moniker]
-  --output <dir>  Alter the output directory for the plist file   [~/Library/LaunchAgents]
-  --interval <sec> Experimental: set restart period
-
-  --quiet         Silence the messages.
-  --help          Show this usage information.
-EOF
+has usage => sub { shift->extract_usage };
 
 sub launchd_commands ($self) {
     return $self if $self->quiet;
@@ -44,17 +32,22 @@ sub launchd_commands ($self) {
 }
 
 sub run ($self, @args) {
-    Mojo::Exception->throw('unable to locate hypnotoad')
+    Mojo::Exception->throw('unable to locate hypnotoad (hypnotoad-launchd)')
         unless $self->hypnotoad;
-    getopt \@args,
-        'inc'      => \my $inc,
-        'force'    => \$self->{force},
-        'mode|m=s' => \my $mode,
-        'label=s'  => \my $label,
-        'output=s' => \my $agent_dir,
+    $self->environment;
+    my $status = getopt \@args,
+        'inc'        => \my $inc,
+        'force'      => \$self->{force},
+        'mode|m=s'   => \my $mode,
+        'label=s'    => \my $label,
+        'output=s'   => \my $agent_dir,
         'interval=i' => \$self->{start_interval},
-        'quiet'    => \$self->{quiet},
+        'environ=s@' => \$self->{environment},
+        'home=s'     => \my $home,
+        'quiet'      => \$self->{quiet},
         ;
+    return $self->help unless $status;
+    $self->app->home(Mojo::Home->new($home)) if $home;
     $self->app->mode($mode) if $mode;
     $self->app->moniker($label) if $label;
     $self->agent_dir($agent_dir) if $agent_dir;
@@ -66,6 +59,11 @@ sub run ($self, @args) {
         if $inc;
     push @$env, Mojo::Cmd::gen::launchd::Variable->new(mojo_mode => $mode)
         if $mode;
+    push @$env, Mojo::Cmd::gen::launchd::Variable
+      ->new(mojo_home => $self->app->home);
+    push @$env, Mojo::Cmd::gen::launchd::Variable->new(split /=/, $_, 2)
+      for @{$self->environment};
+
     my $log = $self->app->log;
     $log->path($self->app->home->child('log/'.$self->app->moniker))
         unless $log->path;
@@ -75,7 +73,7 @@ sub run ($self, @args) {
         app                => $self->app,
         hypnotoad          => $self->hypnotoad,
         application_script => Mojo::File->new($0)->to_abs->to_string,
-        environment        => $env,
+        environment        => $env->uniq(sub { lc $_->name }),
         abandonprocessgroup => 'false', # true of false
         start_interval      => $self->start_interval, # e.g. 3600
     });
@@ -105,7 +103,7 @@ sub _hypnotoad_path_entry ($self) {
 }
 
 sub _minimal_path ($self) {
-    return c(split ':', $ENV{PATH})
+    return c(split /:/, $ENV{PATH})
         ->grep(qr{^/(opt|usr|bin|sbin)\b});
 }
 
@@ -130,9 +128,33 @@ Mojolicious::Command::Author::generate::launchd - Create a launchd.plist file fo
 
 =head1 SYNOPSIS
 
+Usage:
+
+  APPLICATION generate launchd [--inc] [-force] [--mode <mode>] [--label <label>] [--output <dir>] [--interval <seconds>] ...
+
+Options:
+
+  --inc            Include the current PERL5LIB in Environment     [off]
+  --force          Flag to force overwriting of existing plist file
+  --mode <mode>    Set the MOJO_MODE. Hypnotoad default to production
+  --label <label>  Set the label and thus filename of the agent    [app->moniker]
+  --output <dir>   Alter the output directory for the plist file   [~/Library/LaunchAgents]
+  --environ <N=V>  Add NAME=VALUE environment variables
+  --interval <sec> Experimental: set restart period
+  --home <dir>     Application home directory.
+
+  --quiet          Silence the messages.
+  --help           Show this usage information.
+
 =head1 DESCRIPTION
 
 Create a launchd.plist file for application, based on the included template file.
+
+=head1 METHODS
+
+=head2 launchd_commands
+
+=head2 run
 
 =head1 KNOWN NUISANCE
 

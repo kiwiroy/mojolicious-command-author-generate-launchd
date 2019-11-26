@@ -1,2 +1,3 @@
+# cover -t +select ^lib +ignore ^ -make 'prove; exit $?; '
 -l
 t
