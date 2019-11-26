@@ -63,12 +63,12 @@ $l->force(1); # tests will fail otherwise, file not overwritten
 $l->run;
 $dom = Mojo::DOM->new($l->plist_file->slurp);
 $keys = $dom->find('key');
-is $keys->size, 15, 'correct number of keys';
+is $keys->size, 16, 'correct number of keys';
 is_deeply $keys->map(sub { $_->text }), [
     qw{Label AbandonProcessGroup StartInterval RunAtLoad KeepAlive
     SuccessfulExit Program ProgramArguments WorkingDirectory
-    EnvironmentVariables PATH HYPNOTOAD_FOREGROUND MOJO_HOME StandardErrorPath
-    StandardOutPath}
+    EnvironmentVariables PATH HYPNOTOAD_FOREGROUND MOJO_MODE MOJO_HOME
+    StandardErrorPath StandardOutPath}
 ], 'keys correct';
 
 my $ints = $dom->find('integer');
@@ -88,11 +88,11 @@ $l->force(1); # tests will fail otherwise, file not overwritten
 $l->run;
 $dom = Mojo::DOM->new($l->plist_file->slurp);
 $keys = $dom->find('key');
-is $keys->size, 18, 'correct number of keys';
+is $keys->size, 19, 'correct number of keys';
 is_deeply $keys->map(sub { $_->text }), [
     qw{Label AbandonProcessGroup StartInterval RunAtLoad KeepAlive
     SuccessfulExit Program ProgramArguments WorkingDirectory
-    EnvironmentVariables PATH HYPNOTOAD_FOREGROUND MOJO_HOME X1 X2 X3
+    EnvironmentVariables PATH HYPNOTOAD_FOREGROUND MOJO_MODE MOJO_HOME X1 X2 X3
     StandardErrorPath StandardOutPath}
 ], 'keys correct';
 

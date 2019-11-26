@@ -9,113 +9,117 @@ use Mojo::Util 'getopt';
 use File::Glob ':glob';
 use File::Which qw{which};
 
-our $VERSION = 0.1;
+our $VERSION = 0.2;
 
-has agent_dir => \&_default_launch_agent_dir;
-has description => 'Create a launchd.plist file for application';
-has environment => sub { [] };
-has extension => 'plist';
-has force => 0;
+has agent_dir      => \&_default_launch_agent_dir;
+has description    => 'Create a launchd.plist file for application';
+has environment    => sub { [] };
+has extension      => 'plist';
+has force          => 0;
 has start_interval => 0;
-has hypnotoad => sub { which 'hypnotoad-launchd'; };
-has plist_file => sub ($self) {
-    return Mojo::File->new($self->agent_dir)
-        ->child(join '.', $self->app->moniker, $self->extension);
+has hypnotoad      => sub { which 'hypnotoad-launchd'; };
+has plist_file     => sub ($self) {
+  return Mojo::File->new($self->agent_dir)
+    ->child(join '.', $self->app->moniker, $self->extension);
 };
 has usage => sub { shift->extract_usage };
 
 sub launchd_commands ($self) {
-    return $self if $self->quiet;
-    $self->_loud('');
-    $self->_loud($self->render_data('launchctl.cmds', {self => $self}));
-    return $self;
+  return $self if $self->quiet;
+  $self->_loud('');
+  $self->_loud($self->render_data('launchctl.cmds', {self => $self}));
+  return $self;
 }
 
 sub run ($self, @args) {
-    Mojo::Exception->throw('unable to locate hypnotoad (hypnotoad-launchd)')
-        unless $self->hypnotoad;
-    $self->environment;
-    my $status = getopt \@args,
-        'inc'        => \my $inc,
-        'force'      => \$self->{force},
-        'mode|m=s'   => \my $mode,
-        'label=s'    => \my $label,
-        'output=s'   => \my $agent_dir,
-        'interval=i' => \$self->{start_interval},
-        'environ=s@' => \$self->{environment},
-        'home=s'     => \my $home,
-        'quiet'      => \$self->{quiet},
-        ;
-    return $self->help unless $status;
-    $self->app->home(Mojo::Home->new($home)) if $home;
-    $self->app->mode($mode) if $mode;
-    $self->app->moniker($label) if $label;
-    $self->agent_dir($agent_dir) if $agent_dir;
-    $self->_generate_classes;
-    my $env = c();
-    push @$env, Mojo::Cmd::gen::launchd::Variable->new(path => $self->_path),
-        Mojo::Cmd::gen::launchd::Variable->new(hypnotoad_foreground => 1);
-    push @$env, Mojo::Cmd::gen::launchd::Variable->new(perl5lib => $ENV{PERL5LIB})
-        if $inc;
-    push @$env, Mojo::Cmd::gen::launchd::Variable->new(mojo_mode => $mode)
-        if $mode;
-    push @$env, Mojo::Cmd::gen::launchd::Variable
-      ->new(mojo_home => $self->app->home);
-    push @$env, Mojo::Cmd::gen::launchd::Variable->new(split /=/, $_, 2)
-      for @{$self->environment};
+  Mojo::Exception->throw('unable to locate hypnotoad') unless $self->hypnotoad;
+  $self->environment;
+  my $status = getopt \@args,
+    'environ=s@' => \$self->{environment},
+    'force'      => \$self->{force},
+    'home=s'     => \my $home,
+    'inc'        => \my $inc,
+    'interval=i' => \$self->{start_interval},
+    'label=s'    => \my $label,
+    'mode=s'     => \my $mode,
+    'output=s'   => \my $agent_dir,
+    'quiet'      => \$self->{quiet},
+    ;
+  return $self->help unless $status;
+  $mode ||= $ENV{MOJO_MODE} ||= $self->app->mode;
+  $home ||= $ENV{MOJO_HOME} ||= $self->app->home;
+  $home = (ref($home) ? $home : Mojo::File->new($home))->to_abs;
+  $self->app->moniker($label)  if $label;
+  $self->agent_dir($agent_dir) if $agent_dir;
+  $self->_generate_classes;
+  my $env = c();
+  push @$env, Mojo::Cmd::gen::launchd::Variable->new(path => $self->_path),
+    Mojo::Cmd::gen::launchd::Variable->new(hypnotoad_foreground => 1);
+  push @$env, Mojo::Cmd::gen::launchd::Variable->new(perl5lib => $ENV{PERL5LIB})
+    if $inc;
+  push @$env, Mojo::Cmd::gen::launchd::Variable->new(mojo_mode => $mode);
+  push @$env, Mojo::Cmd::gen::launchd::Variable->new(mojo_home => $home);
+  push @$env, Mojo::Cmd::gen::launchd::Variable->new(split /=/, $_, 2)
+    for @{$self->environment};
 
-    my $log = $self->app->log;
-    $log->path($self->app->home->child('log/'.$self->app->moniker))
-        unless $log->path;
-    $self->_loud('  [unlink] ' . $self->plist_file)->plist_file->remove
-        if $self->force;
-    $self->render_to_file('hypnotoad.plist', $self->plist_file, {
-        app                => $self->app,
-        hypnotoad          => $self->hypnotoad,
-        application_script => Mojo::File->new($0)->to_abs->to_string,
-        environment        => $env->uniq(sub { lc $_->name }),
-        abandonprocessgroup => 'false', # true of false
-        start_interval      => $self->start_interval, # e.g. 3600
-    });
-    return $self->launchd_commands;
+  my $log = $self->app->log;
+  $log->path($self->app->home->child('log/' . $self->app->moniker))
+    unless $log->path;
+  $self->_loud('  [env] '
+      . $env->map(sub { join '=' => $_->name, $_->value })
+      ->sort->join("\n        "));
+  $self->_loud('  [unlink] ' . $self->plist_file)->plist_file->remove
+    if $self->force;
+  $self->render_to_file(
+    'hypnotoad.plist',
+    $self->plist_file,
+    {
+      app                => $self->app,
+      hypnotoad          => $self->hypnotoad,
+      application_script => Mojo::File->new($0)->to_abs->to_string,
+      environment        => $env->uniq(sub { lc $_->name }),
+      abandonprocessgroup => 'false',                  # true of false
+      start_interval      => $self->start_interval,    # e.g. 3600
+    }
+  );
+  return $self->launchd_commands;
 }
 
 sub _default_launch_agent_dir {
-    my $flags = GLOB_NOCHECK | GLOB_QUOTE | GLOB_TILDE | GLOB_ERR;
-    return Mojo::File->new(bsd_glob '~/Library/LaunchAgents', $flags)->to_string;
+  my $flags = GLOB_NOCHECK | GLOB_QUOTE | GLOB_TILDE | GLOB_ERR;
+  return Mojo::File->new(bsd_glob '~/Library/LaunchAgents', $flags)->to_string;
 }
 
 sub _generate_classes ($self) {
-    state $x = 0;
-    return $self if ($x++ > 0);
-    eval data_section __PACKAGE__, 'EnvironmentVariable.pm';
-    Mojo::Exception->throw($@) if $@;
-    return $self;
+  state $x = 0;
+  return $self if ($x++ > 0);
+  eval data_section __PACKAGE__, 'EnvironmentVariable.pm';
+  Mojo::Exception->throw($@) if $@;
+  return $self;
 }
 
 sub _hypnotoad_path_entry ($self) {
-    my $toad = $self->hypnotoad;
-    if (!$toad) {
-        $self->log->fatal('Cannot find hypnotoad');
-        Mojo::Exception->throw('Cannot find hypnotoad');
-    }
-    return Mojo::File->new($toad)->dirname;
+  my $toad = $self->hypnotoad;
+  if (!$toad) {
+    $self->log->fatal('Cannot find hypnotoad');
+    Mojo::Exception->throw('Cannot find hypnotoad');
+  }
+  return Mojo::File->new($toad)->dirname;
 }
 
 sub _minimal_path ($self) {
-    return c(split /:/, $ENV{PATH})
-        ->grep(qr{^/(opt|usr|bin|sbin)\b});
+  return c(split ':', $ENV{PATH})->grep(qr{^/(opt|usr|bin|sbin)\b});
 }
 
 sub _path ($self) {
-    my $p = $self->_minimal_path;
-    unshift @$p, $self->_perl_path_entry;
-    unshift @$p, $self->_hypnotoad_path_entry;
-    return $p->uniq->join(':');
+  my $p = $self->_minimal_path;
+  unshift @$p, $self->_perl_path_entry;
+  unshift @$p, $self->_hypnotoad_path_entry;
+  return $p->uniq->join(':');
 }
 
 sub _perl_path_entry ($self) {
-    Mojo::File->new($^X)->dirname;
+  Mojo::File->new($^X)->dirname;
 }
 
 1;
@@ -133,15 +137,15 @@ Usage:
   APPLICATION generate launchd [--inc] [-force] [--mode <mode>] [--label <label>] [--output <dir>] [--interval <seconds>] ...
 
 Options:
-
+  --environ        Additional app specific environment variables
+                   e.g. name=value
   --inc            Include the current PERL5LIB in Environment     [off]
   --force          Flag to force overwriting of existing plist file
-  --mode <mode>    Set the MOJO_MODE. Hypnotoad default to production
+  --mode <mode>    Set the MOJO_MODE.                              [production]
+  --home <path>    Set the MOJO_HOME.
   --label <label>  Set the label and thus filename of the agent    [app->moniker]
   --output <dir>   Alter the output directory for the plist file   [~/Library/LaunchAgents]
-  --environ <N=V>  Add NAME=VALUE environment variables
   --interval <sec> Experimental: set restart period
-  --home <dir>     Application home directory.
 
   --quiet          Silence the messages.
   --help           Show this usage information.
@@ -243,8 +247,7 @@ This generator did not deploy the plist. Use these launchctl commands:
 
 @@ hypnotoad.plist
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://
-www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
  <dict>
 
